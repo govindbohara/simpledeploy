@@ -1,0 +1,11 @@
+# Go build output
+simpledeploy
+*.out
+
+# Secrets
+*.pem
+*.key
+.env
+
+# OS
+.DS_Store
