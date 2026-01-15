@@ -1,12 +1,13 @@
 package config
 
 type Config struct {
-	App     string `yaml:"app"`
-	Target  TargetConfig
-	Build   BuildConfig
-	Package PackageConfig
-	Start   StartConfig
-	Env     map[string]string `yaml:"env"`
+	App     string        `yaml:"app"`
+	Target  TargetConfig  `yaml:"target"`
+	Build   BuildConfig   `yaml:"build"`
+	Package PackageConfig `yaml:"package"`
+	Static  StaticConfig  `yaml:"static"`
+
+	Start StartConfig `yaml:"start"`
 }
 
 type TargetConfig struct {
@@ -25,5 +26,12 @@ type PackageConfig struct {
 }
 
 type StartConfig struct {
-	Cmd string `yaml:"cmd"`
+	Cmd     string `yaml:"cmd"`
+	Workdir string `yaml:"workdir"`
+	Port    int    `yaml:"port"`
+}
+
+type StaticConfig struct {
+	WebRoot string `yaml:"webRoot"`
+	DistDir string `yaml:"distDir"`
 }
