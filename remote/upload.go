@@ -52,3 +52,24 @@ func (c *Client) UploadFile(localPath string, remotePath string) error {
 
 	return nil
 }
+
+func (c *Client) UploadBytes(content string, remotePath string) error {
+	s, err := sftp.NewClient(c.ssh)
+	if err != nil {
+		return fmt.Errorf("sftp client: %w", err)
+	}
+	defer s.Close()
+
+	if err := c.MkdirAll(path.Dir(remotePath)); err != nil {
+		return err
+	}
+
+	f, err := s.Create(remotePath)
+	if err != nil {
+		return fmt.Errorf("create remote file: %w", err)
+	}
+	defer f.Close()
+
+	_, err = f.Write([]byte(content))
+	return err
+}

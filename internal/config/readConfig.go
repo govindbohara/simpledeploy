@@ -2,14 +2,26 @@ package config
 
 type Config struct {
 	App     string        `yaml:"app"`
+	Type    string        `yaml:"type"` // "static" | "node"
 	Target  TargetConfig  `yaml:"target"`
 	Build   BuildConfig   `yaml:"build"`
 	Package PackageConfig `yaml:"package"`
-	Static  StaticConfig  `yaml:"static"`
 
-	Start StartConfig `yaml:"start"`
+	Static StaticConfig `yaml:"static"`
+	Route  RouteConfig  `yaml:"route"`
+
+	Node NodeConfig `yaml:"node"`
 }
 
+type NodeConfig struct {
+	Port    int    `yaml:"port"`
+	Install string `yaml:"install"`
+	Start   string `yaml:"start"`
+}
+
+type RouteConfig struct {
+	Hostnames []string `yaml:"hostnames"`
+}
 type TargetConfig struct {
 	Host    string `yaml:"host"`
 	User    string `yaml:"user"`

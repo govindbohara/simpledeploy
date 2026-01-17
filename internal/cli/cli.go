@@ -6,8 +6,10 @@ import (
 	"path"
 	"simpledeploy/internal/config"
 	"simpledeploy/internal/daemon"
+	"simpledeploy/internal/nginx"
 	"simpledeploy/internal/packageutil"
 	"simpledeploy/internal/runner"
+	"simpledeploy/internal/systemd"
 	"simpledeploy/remote"
 	"time"
 )
@@ -43,13 +45,27 @@ func Deploy() error {
 	defer client.Close()
 
 	// Choose mode
-	isStatic := cfg.Static.WebRoot != "" && cfg.Static.DistDir != ""
-	if isStatic {
-		return deployStatic(cfg, client, archive)
-	}
 
-	// Otherwise: process deploy (Node backend etc.)
-	return fmt.Errorf("process deploy not implemented in this version (static deploy configured)")
+	if cfg.Type == "static" {
+		// 1) Deploy the static artifact first (creates releases/<id>, switches current symlink)
+		if err := deployStatic(cfg, client, archive); err != nil {
+			return err
+		}
+
+		// 2) Then apply nginx config for this app (server_name -> /var/www/<app>/current)
+		conf := nginx.GenerateStatic(cfg)
+		confName := nginx.ConfName(cfg.App)
+		if err := client.ApplyNginxConf(confName, conf); err != nil {
+			return err
+		}
+
+		return nil
+	} else if cfg.Type == "node" {
+		if err := deployNode(cfg, client, archive); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func deployStatic(cfg *config.Config, client *remote.Client, archive string) error {
@@ -105,5 +121,83 @@ func Ping() error {
 	}
 
 	fmt.Println("daemon is alive")
+	return nil
+}
+
+func deployNode(cfg *config.Config, client *remote.Client, archive string) error {
+	releaseID := fmt.Sprintf("%d", time.Now().Unix())
+
+	base := path.Join("/home", cfg.Target.User, "simpledeploy", "apps", cfg.App)
+	releasesDir := path.Join(base, "releases")
+	releaseDir := path.Join(releasesDir, releaseID)
+	current := path.Join(base, "current")
+	logsDir := path.Join(base, "logs")
+	logFile := path.Join(logsDir, "app.log")
+
+	// Prepare dirs
+	if err := client.MkdirAll(releaseDir); err != nil {
+		return err
+	}
+	if err := client.MkdirAll(logsDir); err != nil {
+		return err
+	}
+	// Give ubuntu ownership for extract/install steps
+	_, _ = client.Run(fmt.Sprintf(`sudo chown -R %s:%s "%s"`, cfg.Target.User, cfg.Target.User, base))
+
+	// Upload artifact to release dir
+	remoteArchive := path.Join(releaseDir, "release.tar.gz")
+	fmt.Println("Uploading artifact...")
+	if err := client.UploadFile(archive, remoteArchive); err != nil {
+		return err
+	}
+
+	// Extract
+	fmt.Println("Extracting...")
+	res, err := client.Run(fmt.Sprintf(`cd "%s" && tar -xzf release.tar.gz`, releaseDir))
+	if err != nil {
+		return err
+	}
+	if res.ExitCode != 0 {
+		return fmt.Errorf("extract failed (exit %d): %s", res.ExitCode, res.Stderr)
+	}
+
+	// Switch current symlink
+	_, _ = client.Run(fmt.Sprintf(`sudo ln -sfn "%s" "%s"`, releaseDir, current))
+
+	// Install prod deps on server
+	fmt.Println("Installing dependencies on server...")
+	res, err = client.Run(fmt.Sprintf(`cd "%s" && %s`, current, cfg.Node.Install))
+	if err != nil {
+		return err
+	}
+	if res.ExitCode != 0 {
+		return fmt.Errorf("npm install failed (exit %d): %s", res.ExitCode, res.Stderr)
+	}
+
+	// Write systemd unit
+	unit := systemd.GenerateUnit(cfg, current, logFile)
+	unitName := systemd.ServiceName(cfg.App)
+	unitPath := path.Join("/etc/systemd/system", unitName)
+
+	fmt.Println("Configuring systemd...")
+	if err := client.WriteFileSudo(unit, unitPath); err != nil {
+		return err
+	}
+	if err := client.RestartSystemdService(unitName); err != nil {
+		return err
+	}
+
+	// Apply nginx proxy config (per app)
+	conf := nginx.GenerateNodeProxy(cfg)
+	confName := nginx.ConfName(cfg.App)
+	fmt.Println("Configuring nginx...")
+	if err := client.ApplyNginxConf(confName, conf); err != nil {
+		return err
+	}
+
+	fmt.Println("✅ Node app deployed.")
+	for _, h := range cfg.Route.Hostnames {
+		fmt.Printf("Public URL: http://%s/\n", h)
+	}
 	return nil
 }
