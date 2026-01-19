@@ -3,7 +3,7 @@
 > A lightweight, SSH-based deployment tool for static websites and
 > Node/Express applications built from scratch in Go.
 
-## What SimpleDeploy Can Do (v0)
+## Features of Simple Deploy
 
 ### Static Site Deployment
 
