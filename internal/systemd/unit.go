@@ -10,7 +10,6 @@ func ServiceName(app string) string {
 }
 
 func GenerateUnit(cfg *config.Config, workDir string, logPath string) string {
-	// logPath example: /home/ubuntu/simpledeploy/apps/api1/logs/app.log
 	return fmt.Sprintf(`[Unit]
 Description=SimpleDeploy %s
 After=network.target
