@@ -49,7 +49,7 @@ target:
   host: "3.x.x.x"
   user: "ubuntu"
   port: 22
-  keyPath: "~/.ssh/simpledeploy-key.pem"
+  keyPath: "~/.ssh/key.pem"
 
 build:
   local:
@@ -81,7 +81,7 @@ target:
   host: "3.x.x.x"
   user: "ubuntu"
   port: 22
-  keyPath: "~/.ssh/simpledeploy-key.pem"
+  keyPath: "~/.ssh/key.pem"
 
 build:
   local:
@@ -101,5 +101,5 @@ node:
 
 route:
   hostnames:
-    - "api1.3.x.x.x.nip.io"
+    - "api.3.x.x.x.nip.io"
 ```
