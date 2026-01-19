@@ -30,9 +30,9 @@ func RunOneCommand(command string, workDir string, envs map[string]string) error
 
 	if err := cmd.Run(); err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
-			return fmt.Errorf("command failed: %q (exit code %d)", command, ee.ExitCode())
+			return fmt.Errorf("Command failed: %q (exit code %d)", command, ee.ExitCode())
 		}
-		return fmt.Errorf("failed to run command: %q (%v)", command, err)
+		return fmt.Errorf("Failed to run command: %q (%v)", command, err)
 	}
 
 	return nil

@@ -5,7 +5,7 @@ import (
 	"path"
 )
 
-func (c *Client) ApplyNginxConf(confFileName string, confContent string) error {
+func (c *Client) ApplyNginxConfiguration(confFileName string, confContent string) error {
 	tmp := path.Join("/tmp", "."+confFileName)
 	target := path.Join("/etc/nginx/conf.d", confFileName)
 

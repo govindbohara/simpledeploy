@@ -18,66 +18,66 @@ func CreateTarGz(outPath string, workDir string, include []string) error {
 
 	defer file.Close()
 
-	gw := gzip.NewWriter(file)
+	gzipWriter := gzip.NewWriter(file)
 
-	defer gw.Close()
+	defer gzipWriter.Close()
 
-	tw := tar.NewWriter(gw)
+	tarWriter := tar.NewWriter(gzipWriter)
 
-	defer tw.Close()
+	defer tarWriter.Close()
 
 	for _, p := range include {
-		abs := filepath.Join(workDir, p)
-		if err := addPath(tw, abs, p); err != nil {
+		filePath := filepath.Join(workDir, p)
+		if err := addPath(tarWriter, filePath, p); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func addPath(tw *tar.Writer, absPath string, relPath string) error {
-	info, err := os.Stat(absPath)
+func addPath(tarWriter *tar.Writer, basePath string, relPath string) error {
+	fileInfo, err := os.Stat(basePath)
 	if err != nil {
 		return err
 	}
 
-	if info.IsDir() {
-		return filepath.Walk(absPath, func(path string, fi os.FileInfo, walkErr error) error {
-			if walkErr != nil {
-				return walkErr
+	if fileInfo.IsDir() {
+		return filepath.Walk(basePath, func(path string, fileInfo os.FileInfo, walkError error) error {
+			if walkError != nil {
+				return walkError
 			}
-			if fi.IsDir() {
+			if fileInfo.IsDir() {
 				return nil
 			}
-			subRel, err := filepath.Rel(absPath, path)
+			subRel, err := filepath.Rel(basePath, path)
 			if err != nil {
 				return err
 			}
 			entry := filepath.ToSlash(filepath.Join(relPath, subRel))
-			return addFile(tw, path, entry, fi)
+			return addFile(tarWriter, path, entry, fileInfo)
 		})
 	}
 
-	return addFile(tw, absPath, filepath.ToSlash(relPath), info)
+	return addFile(tarWriter, basePath, filepath.ToSlash(relPath), fileInfo)
 }
 
-func addFile(tw *tar.Writer, filePath, entryName string, fi os.FileInfo) error {
+func addFile(tarWriter *tar.Writer, filePath, entryName string, fi os.FileInfo) error {
 	f, err := os.Open(filePath)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	hdr, err := tar.FileInfoHeader(fi, "")
+	header, err := tar.FileInfoHeader(fi, "")
 	if err != nil {
 		return err
 	}
-	hdr.Name = entryName
+	header.Name = entryName
 
-	if err := tw.WriteHeader(hdr); err != nil {
+	if err := tarWriter.WriteHeader(header); err != nil {
 		return err
 	}
 
-	_, err = io.Copy(tw, f)
+	_, err = io.Copy(tarWriter, f)
 	return err
 }

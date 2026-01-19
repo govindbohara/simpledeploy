@@ -36,7 +36,7 @@ Example public URLs:
     /var/www/<app>/releases/<id>   (static)
     /home/ubuntu/simpledeploy/appName  (node)
 
-    nginx  → routes by hostname
+    nginx  → routes by domain name
     systemd → process manager and keeps application alive
 
 ## 📁 Example `simpledeploy.yaml` (Static Site)

@@ -4,9 +4,9 @@ import (
 	"fmt"
 )
 
-func (c *Client) WriteFileSudo(content string, targetPath string) error {
+func (client *Client) WriteFileSudo(content string, targetPath string) error {
 	tmp := "/tmp/simpledeploy.tmp"
-	if err := c.UploadBytes(content, tmp); err != nil {
+	if err := client.UploadBytes(content, tmp); err != nil {
 		return err
 	}
 
@@ -15,17 +15,17 @@ set -e
 sudo mv "%s" "%s"
 `, tmp, targetPath)
 
-	res, err := c.Run(cmd)
+	result, err := client.Run(cmd)
 	if err != nil {
 		return err
 	}
-	if res.ExitCode != 0 {
-		return fmt.Errorf("write file failed (exit %d): %s", res.ExitCode, res.Stderr)
+	if result.ExitCode != 0 {
+		return fmt.Errorf("write file failed (exit %d): %s", result.ExitCode, result.Stderr)
 	}
 	return nil
 }
 
-func (c *Client) RestartSystemdService(serviceFile string) error {
+func (client *Client) RestartSystemdService(serviceFile string) error {
 	cmd := fmt.Sprintf(`
 set -e
 sudo systemctl daemon-reload
@@ -33,12 +33,12 @@ sudo systemctl enable "%s" >/dev/null 2>&1 || true
 sudo systemctl restart "%s"
 `, serviceFile, serviceFile)
 
-	res, err := c.Run(cmd)
+	result, err := client.Run(cmd)
 	if err != nil {
 		return err
 	}
-	if res.ExitCode != 0 {
-		return fmt.Errorf("systemd restart failed (exit %d): %s", res.ExitCode, res.Stderr)
+	if result.ExitCode != 0 {
+		return fmt.Errorf("systemd restart failed (exit %d): %s", result.ExitCode, result.Stderr)
 	}
 	return nil
 }

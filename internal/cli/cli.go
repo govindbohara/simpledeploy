@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 	"simpledeploy/internal/config"
-	"simpledeploy/internal/daemon"
 	"simpledeploy/internal/nginx"
 	"simpledeploy/internal/packageutil"
 	"simpledeploy/internal/runner"
@@ -15,63 +14,57 @@ import (
 )
 
 func Deploy() error {
-	cfg, err := config.Load("simpledeploy.yaml")
+	config, err := config.Load("simpledeploy.yaml")
 	if err != nil {
 		return err
 	}
-	if err := cfg.Validate(); err != nil {
+	if err := config.Validate(); err != nil {
 		return err
 	}
 
-	if len(cfg.Build.Local) > 0 {
-		if err := runner.RunLocalCommands(cfg.Build.Local, ".", nil); err != nil {
+	if len(config.Build.Local) > 0 {
+		if err := runner.RunLocalCommands(config.Build.Local, ".", nil); err != nil {
 			return err
 		}
 	}
 
-	// 2) Package build output
-	archive := ".simpledeploy-release.tar.gz"
-	if err := packageutil.CreateTarGz(archive, ".", cfg.Package.Include); err != nil {
+	archiveFile := ".simpledeploy-release.tar.gz"
+	if err := packageutil.CreateTarGz(archiveFile, ".", config.Package.Include); err != nil {
 		return err
 	}
-	defer os.Remove(archive)
+	defer os.Remove(archiveFile)
 
 	// 3) SSH connect
 	fmt.Println("Connecting to server via SSH...")
-	client, err := remote.Connect(cfg.Target.Host, cfg.Target.User, cfg.Target.Port, cfg.Target.KeyPath)
+	client, err := remote.Connect(config.Target.Host, config.Target.User, config.Target.Port, config.Target.KeyPath)
 	if err != nil {
 		return err
 	}
 	defer client.Close()
 
-	// Choose mode
-
-	if cfg.Type == "static" {
-		// 1) Deploy the static artifact first (creates releases/<id>, switches current symlink)
-		if err := deployStatic(cfg, client, archive); err != nil {
+	if config.Type == "static" {
+		if err := deployStatic(config, client, archiveFile); err != nil {
 			return err
 		}
 
-		// 2) Then apply nginx config for this app (server_name -> /var/www/<app>/current)
-		conf := nginx.GenerateStatic(cfg)
-		confName := nginx.ConfName(cfg.App)
-		if err := client.ApplyNginxConf(confName, conf); err != nil {
+		conf := nginx.GenerateStatic(config)
+		confName := nginx.ConfigurationName(config.App)
+		if err := client.ApplyNginxConfiguration(confName, conf); err != nil {
 			return err
 		}
 
 		return nil
-	} else if cfg.Type == "node" {
-		if err := deployNode(cfg, client, archive); err != nil {
+	} else if config.Type == "node" {
+		if err := deployNode(config, client, archiveFile); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func deployStatic(cfg *config.Config, client *remote.Client, archive string) error {
-	// Release paths
+func deployStatic(config *config.Config, client *remote.Client, archive string) error {
 	releaseID := fmt.Sprintf("%d", time.Now().Unix())
-	webRoot := cfg.Static.WebRoot
+	webRoot := config.Static.WebRoot
 	releasesDir := path.Join(webRoot, "releases")
 	releaseDir := path.Join(releasesDir, releaseID)
 
@@ -98,43 +91,28 @@ func deployStatic(cfg *config.Config, client *remote.Client, archive string) err
 
 	// Point current -> releaseDir/dist
 	current := path.Join(webRoot, "current")
-	distPath := path.Join(releaseDir, cfg.Static.DistDir)
+	distPath := path.Join(releaseDir, config.Static.DistDir)
 
-	// ln -sfn makes the symlink atomically switch
+	// ln -sfn makes the symlink
 	_, _ = client.Run(fmt.Sprintf(`ln -sfn "%s" "%s"`, distPath, current))
 
 	_, _ = client.Run(`sudo systemctl reload nginx`)
 
-	fmt.Println("✅ Static site deployed.")
+	fmt.Println("Static site deployed.")
 	fmt.Printf("Serving from: %s\n", current)
 	return nil
 }
 
-func Status() error {
-	fmt.Println("Status command not implemented yet")
-	return nil
-}
-
-func Ping() error {
-	if err := daemon.Ping(); err != nil {
-		return err
-	}
-
-	fmt.Println("daemon is alive")
-	return nil
-}
-
-func deployNode(cfg *config.Config, client *remote.Client, archive string) error {
+func deployNode(config *config.Config, client *remote.Client, archive string) error {
 	releaseID := fmt.Sprintf("%d", time.Now().Unix())
 
-	base := path.Join("/home", cfg.Target.User, "simpledeploy", "apps", cfg.App)
+	base := path.Join("/home", config.Target.User, "simpledeploy", "apps", config.App)
 	releasesDir := path.Join(base, "releases")
 	releaseDir := path.Join(releasesDir, releaseID)
 	current := path.Join(base, "current")
 	logsDir := path.Join(base, "logs")
 	logFile := path.Join(logsDir, "app.log")
 
-	// Prepare dirs
 	if err := client.MkdirAll(releaseDir); err != nil {
 		return err
 	}
@@ -142,7 +120,7 @@ func deployNode(cfg *config.Config, client *remote.Client, archive string) error
 		return err
 	}
 	// Give ubuntu ownership for extract/install steps
-	_, _ = client.Run(fmt.Sprintf(`sudo chown -R %s:%s "%s"`, cfg.Target.User, cfg.Target.User, base))
+	_, _ = client.Run(fmt.Sprintf(`sudo chown -R %s:%s "%s"`, config.Target.User, config.Target.User, base))
 
 	// Upload artifact to release dir
 	remoteArchive := path.Join(releaseDir, "release.tar.gz")
@@ -166,7 +144,7 @@ func deployNode(cfg *config.Config, client *remote.Client, archive string) error
 
 	// Install prod deps on server
 	fmt.Println("Installing dependencies on server...")
-	res, err = client.Run(fmt.Sprintf(`cd "%s" && %s`, current, cfg.Node.Install))
+	res, err = client.Run(fmt.Sprintf(`cd "%s" && %s`, current, config.Node.Install))
 	if err != nil {
 		return err
 	}
@@ -174,9 +152,9 @@ func deployNode(cfg *config.Config, client *remote.Client, archive string) error
 		return fmt.Errorf("npm install failed (exit %d): %s", res.ExitCode, res.Stderr)
 	}
 
-	// Write systemd unit
-	unit := systemd.GenerateUnit(cfg, current, logFile)
-	unitName := systemd.ServiceName(cfg.App)
+	// Write systemd unit for process manager
+	unit := systemd.GenerateUnit(config, current, logFile)
+	unitName := systemd.ServiceName(config.App)
 	unitPath := path.Join("/etc/systemd/system", unitName)
 
 	fmt.Println("Configuring systemd...")
@@ -187,16 +165,16 @@ func deployNode(cfg *config.Config, client *remote.Client, archive string) error
 		return err
 	}
 
-	// Apply nginx proxy config (per app)
-	conf := nginx.GenerateNodeProxy(cfg)
-	confName := nginx.ConfName(cfg.App)
+	// Apply nginx proxy config
+	configuration := nginx.GenerateNodeProxy(config)
+	configurationName := nginx.ConfigurationName(config.App)
 	fmt.Println("Configuring nginx...")
-	if err := client.ApplyNginxConf(confName, conf); err != nil {
+	if err := client.ApplyNginxConfiguration(configurationName, configuration); err != nil {
 		return err
 	}
 
-	fmt.Println("✅ Node app deployed.")
-	for _, h := range cfg.Route.Hostnames {
+	fmt.Println("Node app deployed.")
+	for _, h := range config.Route.Hostnames {
 		fmt.Printf("Public URL: http://%s/\n", h)
 	}
 	return nil

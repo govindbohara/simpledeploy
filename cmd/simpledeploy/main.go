@@ -8,8 +8,8 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: simpledeploy <command>")
-		fmt.Println("Commands: deploy, status")
+		fmt.Println("Please provide a command. Usage: simpledeploy <command>")
+		fmt.Println("Command: deploy")
 		os.Exit(1)
 	}
 
@@ -19,12 +19,6 @@ func main() {
 	case "deploy":
 		if err := cli.Deploy(); err != nil {
 			fmt.Println("Failed to deploy ", err)
-			os.Exit(1)
-		}
-
-	case "status":
-		if err := cli.Status(); err != nil {
-			fmt.Println("Status failed:", err)
 			os.Exit(1)
 		}
 	default:

@@ -29,7 +29,7 @@ func Connect(host string, user string, port int, keyPath string) (*Client, error
 	if err != nil {
 		return nil, fmt.Errorf("parse key: %w", err)
 	}
-	cfg := &ssh.ClientConfig{
+	config := &ssh.ClientConfig{
 		User: user,
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(signer),
@@ -38,14 +38,14 @@ func Connect(host string, user string, port int, keyPath string) (*Client, error
 		Timeout:         10 * time.Second,
 	}
 
-	addr := net.JoinHostPort(host, fmt.Sprintf("%d", port))
-	c, err := ssh.Dial("tcp", addr, cfg)
+	address := net.JoinHostPort(host, fmt.Sprintf("%d", port))
+	sshClient, err := ssh.Dial("tcp", address, config)
 
 	if err != nil {
 		return nil, fmt.Errorf("ssh dial: %w", err)
 	}
 
-	return &Client{ssh: c}, nil
+	return &Client{ssh: sshClient}, nil
 
 }
 
@@ -66,18 +66,18 @@ func (c *Client) Run(command string) (*Result, error) {
 
 	err = session.Run(command)
 
-	res := &Result{
+	result := &Result{
 		Stdout: stdout.String(),
 		Stderr: stderr.String(),
 	}
 	if err == nil {
-		res.ExitCode = 0
-		return res, nil
+		result.ExitCode = 0
+		return result, nil
 	}
 
 	if ee, ok := err.(*ssh.ExitError); ok {
-		res.ExitCode = ee.ExitStatus()
-		return res, nil
+		result.ExitCode = ee.ExitStatus()
+		return result, nil
 	}
 
 	return nil, fmt.Errorf("run remote command: %w", err)

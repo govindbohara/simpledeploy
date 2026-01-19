@@ -10,9 +10,9 @@ import (
 	"github.com/pkg/sftp"
 )
 
-func (c *Client) MkdirAll(remoteDir string) error {
+func (client *Client) MkdirAll(remoteDir string) error {
 	remoteDir = strings.ReplaceAll(remoteDir, `"`, `\"`)
-	r, err := c.Run(fmt.Sprintf(`mkdir -p "%s"`, remoteDir))
+	r, err := client.Run(fmt.Sprintf(`mkdir -p "%s"`, remoteDir))
 	if err != nil {
 		return err
 	}
@@ -22,30 +22,30 @@ func (c *Client) MkdirAll(remoteDir string) error {
 	return nil
 }
 
-func (c *Client) UploadFile(localPath string, remotePath string) error {
-	s, err := sftp.NewClient(c.ssh)
+func (client *Client) UploadFile(localPath string, remotePath string) error {
+	sftpClient, err := sftp.NewClient(client.ssh)
 	if err != nil {
 		return fmt.Errorf("sftp client: %w", err)
 	}
-	defer s.Close()
+	defer sftpClient.Close()
 
-	if err := c.MkdirAll(path.Dir(remotePath)); err != nil {
+	if err := client.MkdirAll(path.Dir(remotePath)); err != nil {
 		return err
 	}
 
-	src, err := os.Open(localPath)
+	sourceFile, err := os.Open(localPath)
 	if err != nil {
 		return fmt.Errorf("open local: %w", err)
 	}
-	defer src.Close()
+	defer sourceFile.Close()
 
-	dst, err := s.Create(remotePath)
+	destinationFile, err := sftpClient.Create(remotePath)
 	if err != nil {
 		return fmt.Errorf("create remote: %w", err)
 	}
-	defer dst.Close()
+	defer destinationFile.Close()
 
-	_, err = io.Copy(dst, src)
+	_, err = io.Copy(sourceFile, sourceFile)
 	if err != nil {
 		return fmt.Errorf("copy: %w", err)
 	}
@@ -53,23 +53,23 @@ func (c *Client) UploadFile(localPath string, remotePath string) error {
 	return nil
 }
 
-func (c *Client) UploadBytes(content string, remotePath string) error {
-	s, err := sftp.NewClient(c.ssh)
+func (client *Client) UploadBytes(content string, remotePath string) error {
+	sshClient, err := sftp.NewClient(client.ssh)
 	if err != nil {
 		return fmt.Errorf("sftp client: %w", err)
 	}
-	defer s.Close()
+	defer sshClient.Close()
 
-	if err := c.MkdirAll(path.Dir(remotePath)); err != nil {
+	if err := client.MkdirAll(path.Dir(remotePath)); err != nil {
 		return err
 	}
 
-	f, err := s.Create(remotePath)
+	sftpFile, err := sshClient.Create(remotePath)
 	if err != nil {
 		return fmt.Errorf("create remote file: %w", err)
 	}
-	defer f.Close()
+	defer sftpFile.Close()
 
-	_, err = f.Write([]byte(content))
+	_, err = sftpFile.Write([]byte(content))
 	return err
 }

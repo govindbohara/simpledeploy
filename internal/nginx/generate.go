@@ -7,7 +7,7 @@ import (
 	"simpledeploy/internal/config"
 )
 
-func ConfName(app string) string {
+func ConfigurationName(app string) string {
 	app = sanitize(app)
 	return fmt.Sprintf("simpledeploy-%s.conf", sanitize(app))
 }

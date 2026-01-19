@@ -30,7 +30,7 @@ cat app.pid
 		return nil, fmt.Errorf("start failed (exit %d): %s", r.ExitCode, r.Stderr)
 	}
 
-	// r.Stdout contains pid + maybe newlines
+	// r.Stdout contains pid
 	pid, convErr := parsePid(r.Stdout)
 	if convErr != nil {
 		return nil, convErr

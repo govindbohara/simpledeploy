@@ -7,7 +7,7 @@ func (c *Config) Validate() error {
 		return errors.New("app is required")
 	}
 	if c.Type == "" {
-		c.Type = "static" // default for now
+		c.Type = "static"
 	}
 
 	if c.Target.Host == "" {
@@ -22,6 +22,12 @@ func (c *Config) Validate() error {
 	if c.Target.Port == 0 {
 		c.Target.Port = 22
 	}
+	if len(c.Route.Hostnames) == 0 {
+		return errors.New("route.hostnames is required for static deploy")
+	}
+	if len(c.Package.Include) == 0 {
+		c.Package.Include = []string{c.Static.DistDir}
+	}
 
 	if c.Type == "static" {
 		if c.Static.WebRoot == "" {
@@ -30,12 +36,7 @@ func (c *Config) Validate() error {
 		if c.Static.DistDir == "" {
 			return errors.New("static.distDir is required")
 		}
-		if len(c.Route.Hostnames) == 0 {
-			return errors.New("route.hostnames is required for static deploy")
-		}
-		if len(c.Package.Include) == 0 {
-			c.Package.Include = []string{c.Static.DistDir}
-		}
+
 		return nil
 	}
 	if c.Type == "node" {
@@ -48,14 +49,9 @@ func (c *Config) Validate() error {
 		if c.Node.Start == "" {
 			return errors.New("node.start is required")
 		}
-		if len(c.Route.Hostnames) == 0 {
-			return errors.New("route.hostnames is required for node deploy")
-		}
-		if len(c.Package.Include) == 0 {
-			return errors.New("package.include is required (e.g. package.json, package-lock.json)")
-		}
+
 		return nil
 	}
 
-	return errors.New("unsupported type: " + c.Type)
+	return errors.New("Please provide a valid type: " + c.Type)
 }
