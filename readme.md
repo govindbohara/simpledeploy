@@ -10,7 +10,7 @@
 SimpleDeploy can:
 
 - Build static sites locally
-- Package artifacts into a `.tar.gz`
+- Package artifacts
 - Upload them via SSH to a remote server
 - Serve sites using **nginx**
 - Support **multiple static sites on one server**
@@ -18,8 +18,8 @@ SimpleDeploy can:
 
 Example public URLs:
 
-    http://timer.<server-ip>.nip.io
-    http://portfolio.<server-ip>.nip.io
+    http://timer.<public-ip>.nip.io
+    http://portfolio.<public-ip>.nip.io
 
 ## 🧠 Architecture Overview
 
