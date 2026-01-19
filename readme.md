@@ -21,7 +21,7 @@ Example public URLs:
     http://timer.<public-ip>.nip.io
     http://portfolio.<public-ip>.nip.io
 
-## 🧠 Architecture Overview
+## Architecture Overview
 
     Your Laptop
     │
@@ -39,7 +39,7 @@ Example public URLs:
     nginx  → routes by domain name
     systemd → process manager and keeps application alive
 
-## 📁 Example `simpledeploy.yaml` (Static Site)
+## Example `simpledeploy.yaml` (Static Site)
 
 ```yaml
 app: Appname
@@ -71,7 +71,7 @@ route:
 
 ---
 
-## 📁 Example `simpledeploy.yaml` (Node / Express)
+## Example `simpledeploy.yaml` (Node / Express)
 
 ```yaml
 app: api1
