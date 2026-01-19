@@ -74,7 +74,7 @@ route:
 ## Example `simpledeploy.yaml` (Node / Express)
 
 ```yaml
-app: api1
+app: Appname
 type: node
 
 target:
