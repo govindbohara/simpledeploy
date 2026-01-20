@@ -28,8 +28,7 @@ Example public URLs:
     Packages artifacts (.tar.gz)
     Uploads to EC2 via SSH
          
-    Ubuntu Server
-    ────────────────────────────────────
+    Ubuntu server
     /var/www/<app>/releases/<id>   (static)
     /home/ubuntu/simpledeploy/appName  (node)
 
