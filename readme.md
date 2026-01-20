@@ -1,4 +1,4 @@
-# **SimpleDeploy (v0)**
+# **SimpleDeploy**
 
 > A lightweight, SSH-based deployment tool for static websites and
 > Node/Express applications built from scratch in Go.
@@ -23,14 +23,11 @@ Example public URLs:
 
 ## Architecture Overview
 
-    Your Laptop
-    │
-    │  simpledeploy deploy
-    ├─ Builds app locally
-    ├─ Packages artifacts (.tar.gz)
-    └─ Uploads to EC2 via SSH
-          │
-          ▼
+    simpledeploy deploy
+    Builds app locally
+    Packages artifacts (.tar.gz)
+    Uploads to EC2 via SSH
+         
     Ubuntu Server
     ────────────────────────────────────
     /var/www/<app>/releases/<id>   (static)
