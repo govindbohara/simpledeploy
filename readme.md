@@ -27,13 +27,40 @@ Example public URLs:
     Builds app locally
     Packages artifacts (.tar.gz)
     Uploads to EC2 via SSH
-         
+
     Ubuntu server
     /var/www/<app>/releases/<id>   (static)
     /home/ubuntu/simpledeploy/appName  (node)
 
     nginx  → routes by domain name
     systemd → process manager and keeps application alive
+
+## One time server setup
+
+# Install Node (for Node apps)
+
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Prepare nginx
+
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# Allow SimpleDeploy limited sudo access
+
+sudo tee /etc/sudoers.d/simpledeploy > /dev/null <<'EOF'
+ubuntu ALL=(root) NOPASSWD: \
+/bin/mkdir, \
+/bin/chown, \
+/bin/ln, \
+/bin/mv, \
+/usr/sbin/nginx, \
+/bin/systemctl reload nginx
+EOF
+
+sudo chmod 440 /etc/sudoers.d/simpledeploy
+sudo mkdir -p /var/www
+sudo chown ubuntu:ubuntu /var/www
 
 ## Example `simpledeploy.yaml` (Static Site)
 
