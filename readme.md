@@ -113,7 +113,7 @@ build:
 
 package:
   include:
-    - "dist"
+    - "src"
     - "package.json"
     - "package-lock.json"
 
